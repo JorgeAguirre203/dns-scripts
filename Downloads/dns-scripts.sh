@@ -9,8 +9,8 @@ DOMINIO=$1
 IP_SERVIDOR=$2
 IP_CLIENTE=$3
 
-INTERFAZ="ens34"              # ✅ AHORA ES ENS34
-INTERFAZ_SECUNDARIA="ens33"  # ❌ INTERNET
+INTERFAZ="ens34"              #  AHORA ES ENS34
+INTERFAZ_SECUNDARIA="ens33"  #  INTERNET
 
 if [ -z "$DOMINIO" ]; then
     read -p "Dominio (ej: reprobados.com): " DOMINIO
