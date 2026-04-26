@@ -2,15 +2,15 @@
 
 echo "=== DNS AUTOMATICO LINUX (BIND9) ==="
 
-# ================================***
+# ================================
 # 1. INPUTS
 # ================================
 DOMINIO=$1
 IP_SERVIDOR=$2
 IP_CLIENTE=$3
 
-INTERFAZ="ens33"
-INTERFAZ_SECUNDARIA="ens34"
+INTERFAZ="ens34"              # ✅ AHORA ES ENS34
+INTERFAZ_SECUNDARIA="ens33"  # ❌ INTERNET
 
 if [ -z "$DOMINIO" ]; then
     read -p "Dominio (ej: reprobados.com): " DOMINIO
@@ -34,10 +34,11 @@ echo "Interfaz DNS: $INTERFAZ"
 echo ""
 
 # ================================
-# 2. DESACTIVAR ENS34
+# 2. DESACTIVAR ENS33 (INTERNET)
 # ================================
 if ip link show $INTERFAZ_SECUNDARIA &> /dev/null; then
     echo "[INFO] Desactivando $INTERFAZ_SECUNDARIA..."
+    sudo ip addr flush dev $INTERFAZ_SECUNDARIA
     sudo ip link set $INTERFAZ_SECUNDARIA down
     echo "[OK] $INTERFAZ_SECUNDARIA desactivada"
 else
@@ -45,7 +46,7 @@ else
 fi
 
 # ================================
-# 3. VALIDAR INTERFAZ ENS33
+# 3. VALIDAR ENS34
 # ================================
 IP_ACTUAL=$(ip -4 addr show $INTERFAZ | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
 
