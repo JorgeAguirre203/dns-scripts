@@ -1,102 +1,114 @@
 #!/bin/bash
 
-echo "=== CONFIGURACION DNS LINUX (BIND9) ==="
+echo "=== DNS AUTOMATICO LINUX (BIND9) ==="
 
 # ================================
-# 1. PEDIR DATOS SI NO VIENEN
+# 1. INPUTS
 # ================================
 DOMINIO=$1
 IP_SERVIDOR=$2
 IP_CLIENTE=$3
+INTERFAZ="ens33"
 
 if [ -z "$DOMINIO" ]; then
-    read -p "Ingresa el dominio (ej: reprobados.com): " DOMINIO
+    read -p "Dominio (ej: reprobados.com): " DOMINIO
 fi
 
 if [ -z "$IP_SERVIDOR" ]; then
-    read -p "Ingresa la IP del servidor DNS: " IP_SERVIDOR
+    read -p "IP del servidor DNS: " IP_SERVIDOR
 fi
 
 if [ -z "$IP_CLIENTE" ]; then
-    read -p "Ingresa la IP del cliente: " IP_CLIENTE
+    read -p "IP del cliente: " IP_CLIENTE
 fi
 
 ZONA_FILE="/var/cache/bind/db.$DOMINIO"
 
 echo ""
-echo "=== DATOS INGRESADOS ==="
 echo "Dominio: $DOMINIO"
-echo "Servidor: $IP_SERVIDOR"
+echo "Servidor DNS: $IP_SERVIDOR"
 echo "Cliente: $IP_CLIENTE"
+echo "Interfaz usada: $INTERFAZ"
 echo ""
 
 # ================================
-# 2. VALIDAR IP FIJA
+# 2. VALIDAR INTERFAZ
 # ================================
-IP_ACTUAL=$(hostname -I | awk '{print $1}')
+IP_ACTUAL=$(ip -4 addr show $INTERFAZ | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
 
+if [ -z "$IP_ACTUAL" ]; then
+    echo "[ERROR] La interfaz $INTERFAZ no tiene IP"
+    exit 1
+fi
+
+echo "[OK] $INTERFAZ → $IP_ACTUAL"
+
+# ================================
+# 3. FORZAR IP EN ENS33
+# ================================
 if [ "$IP_ACTUAL" != "$IP_SERVIDOR" ]; then
-    echo "[INFO] IP actual: $IP_ACTUAL"
-    read -p "¿Deseas configurar IP fija a $IP_SERVIDOR? (s/n): " RESP
+    read -p "Configurar IP fija $IP_SERVIDOR en $INTERFAZ? (s/n): " RESP
 
     if [ "$RESP" = "s" ]; then
-        INTERFAZ=$(ip route | grep default | awk '{print $5}')
-
-        echo "[INFO] Configurando IP estatica en $INTERFAZ..."
-
-        sudo bash -c "cat > /etc/netplan/01-dns-config.yaml" <<EOF
+        sudo bash -c "cat > /etc/netplan/01-dns.yaml" <<EOF
 network:
   version: 2
   renderer: networkd
   ethernets:
     $INTERFAZ:
-      addresses: [$IP_SERVIDOR/24]
+      dhcp4: false
+      addresses:
+        - $IP_SERVIDOR/24
 EOF
 
         sudo netplan apply
-        echo "[OK] IP configurada"
+        echo "[OK] IP configurada. Reinicia si hay problemas."
     fi
-else
-    echo "[OK] IP fija correcta"
 fi
 
 # ================================
-# 3. INSTALACION (IDEMPOTENTE)
+# 4. REINSTALAR BIND9
 # ================================
-if ! dpkg -l | grep -q bind9; then
-    echo "[INFO] Instalando BIND9..."
-    sudo apt update
-    sudo apt install -y bind9 bind9utils bind9-doc
-else
-    echo "[OK] BIND9 ya instalado"
-fi
+echo "[INFO] Reinstalando BIND9..."
+
+sudo systemctl stop bind9 2>/dev/null
+sudo apt purge -y bind9 bind9utils bind9-doc 2>/dev/null
+sudo apt autoremove -y
+
+sudo apt update
+sudo apt install -y bind9 bind9utils bind9-doc
 
 # ================================
-# 4. CONFIGURAR ZONA
+# 5. CONFIGURAR BIND
 # ================================
-if ! grep -q "$DOMINIO" /etc/bind/named.conf.local; then
-    echo "[INFO] Agregando zona..."
+echo "[INFO] Configurando BIND..."
 
-    sudo bash -c "cat >> /etc/bind/named.conf.local" <<EOF
+# Forzar escucha en IP correcta
+sudo bash -c "cat > /etc/bind/named.conf.options" <<EOF
+options {
+    directory "/var/cache/bind";
+
+    listen-on { $IP_SERVIDOR; };
+    listen-on-v6 { none; };
+
+    allow-query { any; };
+    recursion yes;
+};
+EOF
+
+# Zona
+sudo bash -c "cat > /etc/bind/named.conf.local" <<EOF
 zone "$DOMINIO" {
     type master;
     file "$ZONA_FILE";
 };
 EOF
-else
-    echo "[OK] Zona ya existe"
-fi
 
-# ================================
-# 5. CREAR ARCHIVO DE ZONA
-# ================================
-if [ ! -f "$ZONA_FILE" ]; then
-    echo "[INFO] Creando archivo de zona..."
-
-    sudo bash -c "cat > $ZONA_FILE" <<EOF
+# Archivo de zona
+sudo bash -c "cat > $ZONA_FILE" <<EOF
 \$TTL 604800
 @   IN  SOA ns.$DOMINIO. admin.$DOMINIO. (
-        1
+        2
         604800
         86400
         2419200
@@ -108,14 +120,11 @@ ns      IN  A       $IP_SERVIDOR
 @       IN  A       $IP_CLIENTE
 www     IN  CNAME   $DOMINIO.
 EOF
-else
-    echo "[OK] Archivo de zona ya existe"
-fi
 
 # ================================
 # 6. VALIDACION
 # ================================
-echo "[INFO] Validando configuracion..."
+echo "[INFO] Validando..."
 
 sudo named-checkconf || { echo "[ERROR] Configuracion incorrecta"; exit 1; }
 sudo named-checkzone $DOMINIO $ZONA_FILE || { echo "[ERROR] Zona incorrecta"; exit 1; }
@@ -123,9 +132,10 @@ sudo named-checkzone $DOMINIO $ZONA_FILE || { echo "[ERROR] Zona incorrecta"; ex
 echo "[OK] Configuracion valida"
 
 # ================================
-# 7. REINICIAR SERVICIO
+# 7. REINICIAR
 # ================================
 sudo systemctl restart bind9
+sudo systemctl enable bind9
 
 # ================================
 # 8. PRUEBAS
@@ -133,12 +143,21 @@ sudo systemctl restart bind9
 echo ""
 echo "=== PRUEBAS ==="
 
-echo "nslookup:"
-nslookup $DOMINIO localhost
+echo "[TEST] Estado del servicio:"
+sudo systemctl status bind9 | grep Active
 
 echo ""
-echo "ping:"
-ping -c 2 www.$DOMINIO
+echo "[TEST] Puerto 53:"
+sudo ss -tulnp | grep :53
+
+echo ""
+echo "[TEST] DNS (dig):"
+dig @$IP_SERVIDOR $DOMINIO +short
+dig @$IP_SERVIDOR www.$DOMINIO +short
+
+echo ""
+echo "[TEST] Ping:"
+ping -c 2 $IP_CLIENTE
 
 echo ""
 echo "=== FINALIZADO ==="
