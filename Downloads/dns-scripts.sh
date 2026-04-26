@@ -2,13 +2,15 @@
 
 echo "=== DNS AUTOMATICO LINUX (BIND9) ==="
 
-# ================================
+# ================================***
 # 1. INPUTS
 # ================================
 DOMINIO=$1
 IP_SERVIDOR=$2
 IP_CLIENTE=$3
+
 INTERFAZ="ens33"
+INTERFAZ_SECUNDARIA="ens34"
 
 if [ -z "$DOMINIO" ]; then
     read -p "Dominio (ej: reprobados.com): " DOMINIO
@@ -28,11 +30,22 @@ echo ""
 echo "Dominio: $DOMINIO"
 echo "Servidor DNS: $IP_SERVIDOR"
 echo "Cliente: $IP_CLIENTE"
-echo "Interfaz usada: $INTERFAZ"
+echo "Interfaz DNS: $INTERFAZ"
 echo ""
 
 # ================================
-# 2. VALIDAR INTERFAZ
+# 2. DESACTIVAR ENS34
+# ================================
+if ip link show $INTERFAZ_SECUNDARIA &> /dev/null; then
+    echo "[INFO] Desactivando $INTERFAZ_SECUNDARIA..."
+    sudo ip link set $INTERFAZ_SECUNDARIA down
+    echo "[OK] $INTERFAZ_SECUNDARIA desactivada"
+else
+    echo "[OK] $INTERFAZ_SECUNDARIA no existe"
+fi
+
+# ================================
+# 3. VALIDAR INTERFAZ ENS33
 # ================================
 IP_ACTUAL=$(ip -4 addr show $INTERFAZ | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
 
@@ -44,7 +57,7 @@ fi
 echo "[OK] $INTERFAZ → $IP_ACTUAL"
 
 # ================================
-# 3. FORZAR IP EN ENS33
+# 4. CONFIGURAR IP FIJA
 # ================================
 if [ "$IP_ACTUAL" != "$IP_SERVIDOR" ]; then
     read -p "Configurar IP fija $IP_SERVIDOR en $INTERFAZ? (s/n): " RESP
@@ -62,12 +75,12 @@ network:
 EOF
 
         sudo netplan apply
-        echo "[OK] IP configurada. Reinicia si hay problemas."
+        echo "[OK] IP configurada"
     fi
 fi
 
 # ================================
-# 4. REINSTALAR BIND9
+# 5. REINSTALAR BIND9
 # ================================
 echo "[INFO] Reinstalando BIND9..."
 
@@ -79,11 +92,10 @@ sudo apt update
 sudo apt install -y bind9 bind9utils bind9-doc
 
 # ================================
-# 5. CONFIGURAR BIND
+# 6. CONFIGURAR BIND
 # ================================
 echo "[INFO] Configurando BIND..."
 
-# Forzar escucha en IP correcta
 sudo bash -c "cat > /etc/bind/named.conf.options" <<EOF
 options {
     directory "/var/cache/bind";
@@ -96,7 +108,6 @@ options {
 };
 EOF
 
-# Zona
 sudo bash -c "cat > /etc/bind/named.conf.local" <<EOF
 zone "$DOMINIO" {
     type master;
@@ -104,7 +115,6 @@ zone "$DOMINIO" {
 };
 EOF
 
-# Archivo de zona
 sudo bash -c "cat > $ZONA_FILE" <<EOF
 \$TTL 604800
 @   IN  SOA ns.$DOMINIO. admin.$DOMINIO. (
@@ -122,7 +132,7 @@ www     IN  CNAME   $DOMINIO.
 EOF
 
 # ================================
-# 6. VALIDACION
+# 7. VALIDACION
 # ================================
 echo "[INFO] Validando..."
 
@@ -132,30 +142,27 @@ sudo named-checkzone $DOMINIO $ZONA_FILE || { echo "[ERROR] Zona incorrecta"; ex
 echo "[OK] Configuracion valida"
 
 # ================================
-# 7. REINICIAR
+# 8. REINICIAR
 # ================================
 sudo systemctl restart bind9
 sudo systemctl enable bind9
 
 # ================================
-# 8. PRUEBAS
+# 9. PRUEBAS
 # ================================
 echo ""
 echo "=== PRUEBAS ==="
 
-echo "[TEST] Estado del servicio:"
+echo "[TEST] Servicio:"
 sudo systemctl status bind9 | grep Active
 
-echo ""
 echo "[TEST] Puerto 53:"
 sudo ss -tulnp | grep :53
 
-echo ""
-echo "[TEST] DNS (dig):"
+echo "[TEST] DNS:"
 dig @$IP_SERVIDOR $DOMINIO +short
 dig @$IP_SERVIDOR www.$DOMINIO +short
 
-echo ""
 echo "[TEST] Ping:"
 ping -c 2 $IP_CLIENTE
 
