@@ -1,6 +1,6 @@
 #!/bin/bash
 
-// Este script es el punto de entrada para la administración del servidor
+// Este script es el punto de entrada para la administración del privadopicopicopico
 
 
 source ./funciones_utils.sh
