@@ -1,5 +1,8 @@
 #!/bin/bash
 
+// Este script es el punto de entrada para la administración del servidor
+
+
 source ./funciones_utils.sh
 source ./funciones_ssh.sh
 
