@@ -12,6 +12,11 @@ source ./DNS/internet.sh
 source ./DNS/reinicio.sh
 source ./DNS/test.sh
 source ./DNS/validar.sh
+source ./DHCP/instalacion.sh
+source ./DHCP/validaciones.sh
+source ./DHCP/orquestacion.sh
+source ./DHCP/configuracion.sh
+source ./DHCP/monitoreo.sh
 
 
 menu() {
@@ -61,6 +66,32 @@ menu_scripts_dns() {
     echo "1- inputs.sh"
 }
 
+menu_dhcp() {
+    echo "Menu para configuracion de DHCP"
+    echo "1- Configurar DHCP"
+    echo "2- Observar scripts"
+    echo "3- Volver al menu principal"
+}
+
+menu_config_dhcp() {
+    echo "Menu para configuracion de DHCP"
+    echo "1- Instalar isc-dhcp-server"
+    echo "2- Ingresar parametros"
+    echo "3- Aplicar configuracion"
+    echo "4- Reiniciar servicio"
+    echo "5- Ver estado y concesiones"
+    echo "6- Volver al menu principal"
+}
+
+menu_scripts_dhcp() {
+    echo "Elige el script"
+    echo "1- instalacion.sh"
+    echo "2- validaciones.sh"
+    echo "3- orquestacion.sh"
+    echo "4- configuracion.sh"
+    echo "5- monitoreo.sh"
+}
+
 while true; do
     menu
     read -p "Selecciona una opcion: " A
@@ -98,7 +129,83 @@ while true; do
             done
             ;;
         4)
-            sudo ./dhcp_setup.sh
+            while true; do
+                menu_dhcp
+                read -p "Opcion: " F
+
+                case $F in
+                    1)
+                        while true; do
+                            menu_config_dhcp
+                            read -p "Opcion: " G
+
+                            case $G in
+                                1)
+                                    instalar_dhcp
+                                    ;;
+                                2)
+                                    recopilar_parametros
+                                    ;;
+                                3)
+                                    configurar_dhcp
+                                    ;;
+                                4)
+                                    reiniciar_servicio
+                                    ;;
+                                5)
+                                    mostrar_estado
+                                    ;;
+                                6)
+                                    echo "Volviendo..."
+                                    break
+                                    ;;
+                                *)
+                                    echo "Opcion invalida"
+                                    ;;
+                            esac
+
+                            read -p "Presiona ENTER para continuar"
+                        done
+                        ;;
+
+                    2)
+                        menu_scripts_dhcp
+                        read -p "Opcion: " H
+
+                        case $H in
+                            1)
+                                nano -v ./DHCP/lib/instalacion.sh
+                                ;;
+                            2)
+                                nano -v ./DHCP/lib/validaciones.sh
+                                ;;
+                            3)
+                                nano -v ./DHCP/lib/orquestacion.sh
+                                ;;
+                            4)
+                                nano -v ./DHCP/lib/configuracion.sh
+                                ;;
+                            5)
+                                nano -v ./DHCP/lib/monitoreo.sh
+                                ;;
+                            *)
+                                echo "Opcion invalida"
+                                ;;
+                        esac
+                        ;;
+
+                    3)
+                        echo "Volviendo..."
+                        break
+                        ;;
+
+                    *)
+                        echo "Opcion invalida"
+                        ;;
+                esac
+
+                read -p "Presiona ENTER para continuar"
+            done
             ;;
         5)
             while true; do
