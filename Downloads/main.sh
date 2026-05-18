@@ -7,59 +7,54 @@ source ./DNS/inputs.sh
 
 menu() {
     clear
-    echo "========"
-    echo "administracion de servidor"
-    echo "================="
-    echo "1-instalar y configurarr ssh"
-    echo "2- verificar estado ssh"
-    echo "3- verificar estado del sistema"
+    echo "========================"
+    echo "Administracion de servidor"
+    echo "========================"
+    echo "1- Instalar y configurar SSH"
+    echo "2- Verificar estado SSH"
+    echo "3- Verificar estado del sistema"
     echo "4- Crear DHCP"
     echo "5- Crear DNS"
-    echo "6- salir"
-    echo "================="
+    echo "6- Salir"
+    echo "========================"
 }
 
- menu_status() {
-   echo "Menu para revision de estatus del sistema"
-      echo "1-Revisar status del sistema"
-         echo "2- observar script"
-           echo "3- volver al menu principal"
+menu_status() {
+    echo "Menu para revision de estatus del sistema"
+    echo "1- Revisar status del sistema"
+    echo "2- Observar script"
+    echo "3- Volver al menu principal"
 }
 
-menu_dns()
-{
+menu_dns() {
     echo "Menu para configuracion de DNS"
-    echo "1- configurar DNS"
-    echo "2- observar scripts"
-    echo "3- volver al menu principal"
+    echo "1- Configurar DNS"
+    echo "2- Observar scripts"
+    echo "3- Volver al menu principal"
 }
 
-menu_config_dns()
-{
+menu_config_dns() {
     echo "Menu para configuracion de DNS"
     echo "1- inputs.sh"
     echo "2- interfaz.sh"
-    echo "3- Configurar ip fija"
+    echo "3- Configurar IP fija"
     echo "4- check_internet.sh"
-    echo "5- instalar/reinstalar bind9"
-    echo "6- configurar bind9"
-    echo "7- validar configuracion"
-    echo "Reinicio"
-    echo "9- pruebas"
-    echo "10- volver al menu principal"
+    echo "5- Instalar/reinstalar bind9"
+    echo "6- Configurar bind9"
+    echo "7- Validar configuracion"
+    echo "8- Reinicio"
+    echo "9- Pruebas"
+    echo "10- Volver al menu principal"
 }
 
-menu_scripts_dns()
-{
-    echo "elige el script"
+menu_scripts_dns() {
+    echo "Elige el script"
     echo "1- inputs.sh"
-
 }
-
 
 while true; do
     menu
-    read -p "selecciona una opcion: " A
+    read -p "Selecciona una opcion: " A
 
     case $A in
         1)
@@ -69,10 +64,10 @@ while true; do
             verificar_ssh
             ;;
         3)
-           
             while true; do
                 menu_status
                 read -p "Opcion: " B
+
                 case $B in
                     1)
                         validar_status
@@ -82,31 +77,35 @@ while true; do
                         nano -v ./check_status_utils.sh
                         ;;
                     3)
-                        echo "volviendo..."
+                        echo "Volviendo..."
                         break
                         ;;
+                    *)
+                        echo "Opcion invalida"
+                        ;;
                 esac
-                read -p "presiona enter para continuar"
+
+                read -p "Presiona ENTER para continuar"
             done
             ;;
         4)
             sudo ./dhcp_setup.sh
             ;;
         5)
-            while true
-            do
+            while true; do
                 menu_dns
                 read -p "Opcion: " C
+
                 case $C in
                     1)
-                        while true                        do
+                        while true; do
                             menu_config_dns
                             read -p "Opcion: " D
+
                             case $D in
                                 1)
                                     inputs
                                     ;;
-                               
                                 2)
                                     valid_interfaz
                                     ;;
@@ -114,16 +113,16 @@ while true; do
                                     ipfija
                                     ;;
                                 4)
-                                   check_internet
+                                    check_internet
                                     ;;
                                 5)
-                                   rein_bind
+                                    rein_bind
                                     ;;
                                 6)
                                     config_bind
                                     ;;
                                 7)
-                                   validar
+                                    validar
                                     ;;
                                 8)
                                     reinicio
@@ -132,27 +131,53 @@ while true; do
                                     pruebas
                                     ;;
                                 10)
-                                    echo "volviendo..."
+                                    echo "Volviendo..."
                                     break
                                     ;;
+                                *)
+                                    echo "Opcion invalida"
+                                    ;;
+                            esac
+
+                            read -p "Presiona ENTER para continuar"
+                        done
+                        ;;
+
                     2)
                         menu_scripts_dns
                         read -p "Opcion: " E
+
                         case $E in
                             1)
                                 nano -v ./DNS/inputs.sh
+                                ;;
+                            *)
+                                echo "Opcion invalida"
+                                ;;
+                        esac
+                        ;;
+
+                    3)
+                        echo "Volviendo..."
+                        break
+                        ;;
+
+                    *)
+                        echo "Opcion invalida"
                         ;;
                 esac
-                read -p "presiona enter para continuar"
+
+                read -p "Presiona ENTER para continuar"
             done
             ;;
         6)
-            echo "Saliendo"
+            echo "Saliendo..."
             exit 0
             ;;
         *)
-            echo "opcion invalida"
+            echo "Opcion invalida"
             ;;
     esac
-    read -p "presiona enter para continuar"
+
+    read -p "Presiona ENTER para continuar"
 done
