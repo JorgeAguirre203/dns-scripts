@@ -4,6 +4,15 @@ source ./funciones_ssh.sh
 source ./funciones_utils.sh
 source ./check_status_utils.sh
 source ./DNS/inputs.sh
+source ./DNS/bind.sh
+source ./DNS/configbind.sh
+source ./DNS/confip.sh
+source ./DNS/interfaz.sh
+source ./DNS/internet.sh
+source ./DNS/reinicio.sh
+source ./DNS/test.sh
+source ./DNS/validar.sh
+
 
 menu() {
     clear
