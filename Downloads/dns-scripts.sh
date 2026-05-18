@@ -1,10 +1,14 @@
 #!/bin/bash
 
-echo "=== DNS AUTOMATICO LINUX (BIND9) ==="
+
+
+
 
 # ================================
 # 1. INPUTS
 # ================================
+inputs() {
+    echo "=== DNS AUTOMATICO LINUX (BIND9) ==="
 DOMINIO=$1
 IP_SERVIDOR=$2
 IP_CLIENTE=$3
@@ -33,10 +37,14 @@ echo "Cliente: $IP_CLIENTE"
 echo "Interfaz DNS: $INTERFAZ_DNS"
 echo "Interfaz Internet: $INTERFAZ_NET"
 echo ""
+}
+
+
 
 # ================================
 # 2. VALIDAR INTERFAZ DNS (ens34)
 # ================================
+valid_interfaz(){
 IP_ACTUAL=$(ip -4 addr show $INTERFAZ_DNS | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
 
 if [ -z "$IP_ACTUAL" ]; then
@@ -45,10 +53,11 @@ if [ -z "$IP_ACTUAL" ]; then
 fi
 
 echo "[OK] $INTERFAZ_DNS → $IP_ACTUAL"
-
+}
 # ================================
 # 3. CONFIGURAR IP FIJA EN ENS34
 # ================================
+ipfija(){
 if [ "$IP_ACTUAL" != "$IP_SERVIDOR" ]; then
     read -p "Configurar IP fija $IP_SERVIDOR en $INTERFAZ_DNS? (s/n): " RESP
 
@@ -69,10 +78,11 @@ EOF
         echo "[OK] IP configurada en $INTERFAZ_DNS"
     fi
 fi
-
+}
 # ================================
 # 4. CHECK INTERNET (para instalar)
 # ================================
+check_internet(){
 echo "[INFO] Verificando internet..."
 if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
     echo "[OK] Internet disponible (via $INTERFAZ_NET)"
@@ -81,10 +91,11 @@ else
     echo "[WARN] Sin internet. No se instalará BIND, solo se configurará."
     INSTALAR=0
 fi
-
+}
 # ================================
 # 5. INSTALAR/REINSTALAR BIND9
 # ================================
+rein_bind(){
 if [ $INSTALAR -eq 1 ]; then
     echo "[INFO] Instalando/Reinstalando BIND9..."
     sudo systemctl stop bind9 2>/dev/null
@@ -95,10 +106,11 @@ if [ $INSTALAR -eq 1 ]; then
 else
     echo "[INFO] Saltando instalación de BIND9"
 fi
-
+}
 # ================================
 # 6. CONFIGURAR BIND (forzar ens34)
 # ================================
+config_bind(){
 echo "[INFO] Configurando BIND..."
 
 sudo bash -c "cat > /etc/bind/named.conf.options" <<EOF
@@ -135,26 +147,29 @@ ns      IN  A       $IP_SERVIDOR
 @       IN  A       $IP_CLIENTE
 www     IN  CNAME   $DOMINIO.
 EOF
-
+}
 # ================================
 # 7. VALIDACION
 # ================================
+validar(){
 echo "[INFO] Validando..."
 
 sudo named-checkconf || { echo "[ERROR] Config incorrecta"; exit 1; }
 sudo named-checkzone $DOMINIO $ZONA_FILE || { echo "[ERROR] Zona incorrecta"; exit 1; }
 
 echo "[OK] Configuración válida"
-
+}
 # ================================
 # 8. REINICIAR
 # ================================
+reinicio(){
 sudo systemctl restart bind9
 sudo systemctl enable bind9
-
+}
 # ================================
 # 9. PRUEBAS
 # ================================
+pruebas(){
 echo ""
 echo "=== PRUEBAS ==="
 
@@ -173,3 +188,4 @@ ping -c 2 $IP_CLIENTE
 
 echo ""
 echo "=== FINALIZADO ==="
+}

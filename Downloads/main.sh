@@ -3,6 +3,7 @@
 source ./funciones_ssh.sh
 source ./funciones_utils.sh
 source ./check_status_utils.sh
+source ./DNS/inputs.sh
 
 menu() {
     clear
@@ -18,6 +19,44 @@ menu() {
     echo "================="
 }
 
+ menu_status() {
+   echo "Menu para revision de estatus del sistema"
+      echo "1-Revisar status del sistema"
+         echo "2- observar script"
+           echo "3- volver al menu principal"
+}
+
+menu_dns()
+{
+    echo "Menu para configuracion de DNS"
+    echo "1- configurar DNS"
+    echo "2- observar scripts"
+    echo "3- volver al menu principal"
+}
+
+menu_config_dns()
+{
+    echo "Menu para configuracion de DNS"
+    echo "1- inputs.sh"
+    echo "2- interfaz.sh"
+    echo "3- Configurar ip fija"
+    echo "4- check_internet.sh"
+    echo "5- instalar/reinstalar bind9"
+    echo "6- configurar bind9"
+    echo "7- validar configuracion"
+    echo "Reinicio"
+    echo "9- pruebas"
+    echo "10- volver al menu principal"
+}
+
+menu_scripts_dns()
+{
+    echo "elige el script"
+    echo "1- inputs.sh"
+
+}
+
+
 while true; do
     menu
     read -p "selecciona una opcion: " A
@@ -30,12 +69,7 @@ while true; do
             verificar_ssh
             ;;
         3)
-            menu_status() {
-                echo "Menu para revision de estatus del sistema"
-                echo "1-Revisar status del sistema"
-                echo "2- observar script"
-                echo "3- volver al menu principal"
-            }
+           
             while true; do
                 menu_status
                 read -p "Opcion: " B
@@ -49,7 +83,7 @@ while true; do
                         ;;
                     3)
                         echo "volviendo..."
-                        break # 'break' te saca de este sub-menú y te regresa al principal
+                        break
                         ;;
                 esac
                 read -p "presiona enter para continuar"
@@ -59,7 +93,58 @@ while true; do
             sudo ./dhcp_setup.sh
             ;;
         5)
-            sudo ./dns-scripts.sh
+            while true
+            do
+                menu_dns
+                read -p "Opcion: " C
+                case $C in
+                    1)
+                        while true                        do
+                            menu_config_dns
+                            read -p "Opcion: " D
+                            case $D in
+                                1)
+                                    inputs
+                                    ;;
+                               
+                                2)
+                                    valid_interfaz
+                                    ;;
+                                3)
+                                    ipfija
+                                    ;;
+                                4)
+                                   check_internet
+                                    ;;
+                                5)
+                                   rein_bind
+                                    ;;
+                                6)
+                                    config_bind
+                                    ;;
+                                7)
+                                   validar
+                                    ;;
+                                8)
+                                    reinicio
+                                    ;;
+                                9)
+                                    pruebas
+                                    ;;
+                                10)
+                                    echo "volviendo..."
+                                    break
+                                    ;;
+                    2)
+                        menu_scripts_dns
+                        read -p "Opcion: " E
+                        case $E in
+                            1)
+                                nano -v ./DNS/inputs.sh
+                        ;;
+                esac
+                read -p "presiona enter para continuar"
+            done
             ;;
         6)
             echo "Saliendo"
