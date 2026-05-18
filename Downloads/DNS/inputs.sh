@@ -1,3 +1,4 @@
+#!/bin/bash
 inputs() {
 DOMINIO=$1
 IP_SERVIDOR=$2
