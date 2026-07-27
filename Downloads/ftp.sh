@@ -223,3 +223,45 @@ eliminar_usuario_ftp() {
 
     echo -e "${VERDE}[OK] Usuario $username eliminado del servidor.${RESET}"
 }
+
+# ==========================================
+# BLOQUE STANDALONE (para ejecutar ftp.sh solo)
+# ==========================================
+
+# Definir colores solo si no existen ya (por si se llama desde main.sh)
+: "${CYAN:=\033[0;36m}"
+: "${VERDE:=\033[0;32m}"
+: "${ROJO:=\033[0;31m}"
+: "${RESET:=\033[0m}"
+
+menu_ftp() {
+    while true; do
+        echo -e "\n${CYAN}========== MENÚ FTP ==========${RESET}"
+        echo "1) Configuración inicial FTP"
+        echo "2) Verificar instalación FTP"
+        echo "3) Alta de usuarios"
+        echo "4) Cambiar grupo de usuario"
+        echo "5) Eliminar usuario"
+        echo "0) Salir"
+        read -p "Selecciona una opción: " opcion
+
+        case "$opcion" in
+            1) configuracion_inicial_ftp ;;
+            2) verificar_instalacion_ftp ;;
+            3) gestion_alta_usuarios ;;
+            4) cambiar_grupo_ftp ;;
+            5) eliminar_usuario_ftp ;;
+            0) echo -e "${VERDE}Saliendo...${RESET}"; break ;;
+            *) echo -e "${ROJO}[!] Opción inválida.${RESET}" ;;
+        esac
+    done
+}
+
+# Solo ejecuta el menú si el script se corre directamente (no si se hace source)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    if [[ $EUID -ne 0 ]]; then
+        echo -e "${ROJO}[!] Este script necesita permisos de root. Ejecuta con: sudo ./ftp.sh${RESET}"
+        exit 1
+    fi
+    menu_ftp
+fi
