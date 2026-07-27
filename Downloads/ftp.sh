@@ -1,3 +1,4 @@
+cat > ftp.sh << 'SCRIPTEOF'
 #!/bin/bash
 
 # ==========================================
@@ -18,45 +19,38 @@ configuracion_inicial_ftp() {
         echo "/usr/sbin/nologin" >> /etc/shells
     fi
 
-    # Estructura de carpetas raíz físic
     mkdir -p /srv/ftp/grupos/general
     mkdir -p /srv/ftp/grupos/reprobados
     mkdir -p /srv/ftp/grupos/recursadores
     mkdir -p /srv/ftp/autenticados
 
-    # --- NUEVO: EL "LOBBY" PARA EL USUARIO ANÓNIMO ---
-    # Creamos un cuarto seguro y montamos la carpeta general adentro
     mkdir -p /srv/ftp/lobby_anonimo/general
     chown root:root /srv/ftp/lobby_anonimo
     chmod 555 /srv/ftp/lobby_anonimo
     mount --bind /srv/ftp/grupos/general /srv/ftp/lobby_anonimo/general 2>/dev/null
-    
+
     if ! grep -q "lobby_anonimo" /etc/fstab; then
         echo "/srv/ftp/grupos/general /srv/ftp/lobby_anonimo/general none bind 0 0" >> /etc/fstab
     fi
 
-    # Permisos blindados para el error 500
     chown root:root /srv/ftp/grupos/general
     chmod 555 /srv/ftp/grupos/general
     chmod 770 /srv/ftp/grupos/reprobados
     chmod 770 /srv/ftp/grupos/recursadores
 
-    # Herencia de permisos (ACL)
     setfacl -m g:reprobados:rwx /srv/ftp/grupos/general 2>/dev/null
     setfacl -m g:recursadores:rwx /srv/ftp/grupos/general 2>/dev/null
-                                                   
+
     setfacl -d -m g:reprobados:rwx /srv/ftp/grupos/general 2>/dev/null
     setfacl -d -m g:recursadores:rwx /srv/ftp/grupos/general 2>/dev/null
     setfacl -d -m g:reprobados:rwx /srv/ftp/grupos/reprobados 2>/dev/null
     setfacl -d -m g:recursadores:rwx /srv/ftp/grupos/recursadores 2>/dev/null
 
-    # Configuración de vsftpd.conf
     cat <<EOF > /etc/vsftpd.conf
 listen=YES
 listen_ipv6=NO
 anonymous_enable=YES
 no_anon_password=YES
-# --- AHORA EL ANÓNIMO ENTRA AL LOBBY ---
 anon_root=/srv/ftp/lobby_anonimo
 local_enable=YES
 write_enable=YES
@@ -137,18 +131,15 @@ gestion_alta_usuarios() {
 
                 mkdir -p /srv/ftp/autenticados/$username/{general,"$grupo",$username}
 
-                # --- SOLUCIÓN AUTOMATIZADA PARA EL ERROR 500 OOPS (Usuarios) ---
                 chown root:root /srv/ftp/autenticados/$username
                 chmod 555 /srv/ftp/autenticados/$username
 
-                # Silenciamos la salida del mount por si acaso
                 mount --bind /srv/ftp/grupos/general /srv/ftp/autenticados/$username/general 2>/dev/null
                 mount --bind /srv/ftp/grupos/"$grupo" /srv/ftp/autenticados/$username/"$grupo" 2>/dev/null
 
                 echo "/srv/ftp/grupos/general /srv/ftp/autenticados/$username/general none bind 0 0" >> /etc/fstab
                 echo "/srv/ftp/grupos/$grupo /srv/ftp/autenticados/$username/$grupo none bind 0 0" >> /etc/fstab
 
-                # Elimina el aviso de systemd
                 systemctl daemon-reload
 
                 setfacl -m u:$username:rwx /srv/ftp/autenticados/$username/$username
@@ -228,7 +219,6 @@ eliminar_usuario_ftp() {
 # BLOQUE STANDALONE (para ejecutar ftp.sh solo)
 # ==========================================
 
-# Definir colores solo si no existen ya (por si se llama desde main.sh)
 : "${CYAN:=\033[0;36m}"
 : "${VERDE:=\033[0;32m}"
 : "${ROJO:=\033[0;31m}"
@@ -257,7 +247,6 @@ menu_ftp() {
     done
 }
 
-# Solo ejecuta el menú si el script se corre directamente (no si se hace source)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     if [[ $EUID -ne 0 ]]; then
         echo -e "${ROJO}[!] Este script necesita permisos de root. Ejecuta con: sudo ./ftp.sh${RESET}"
@@ -265,3 +254,5 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     fi
     menu_ftp
 fi
+SCRIPTEOF
+chmod +x ftp.sh
